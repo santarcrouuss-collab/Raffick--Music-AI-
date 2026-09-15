@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raffick Music AI V5</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#080808;
+  color:white;
+}
+
+.container{
+  max-width:700px;
+  margin:auto;
+  padding:25px 18px 50px;
+}
+
+.logo{
+  text-align:center;
+  font-size:30px;
+  font-weight:bold;
+  margin:15px 0 5px;
+}
+
+.subtitle{
+  text-align:center;
+  color:#aaa;
+  margin-bottom:30px;
+}
+
+.card{
+  background:#151515;
+  border:1px solid #292929;
+  border-radius:18px;
+  padding:20px;
+  margin-bottom:18px;
+}
+
+label{
+  display:block;
+  margin-bottom:8px;
+  font-weight:bold;
+}
+
+textarea,select{
+  width:100%;
+  background:#0d0d0d;
+  color:white;
+  border:1px solid #333;
+  border-radius:12px;
+  padding:14px;
+  font-size:16px;
+  outline:none;
+}
+
+textarea{
+  min-height:130px;
+  resize:vertical;
+}
+
+select{
+  margin-top:5px;
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:18px;
+}
+
+button{
+  width:100%;
+  margin-top:20px;
+  padding:16px;
+  border:0;
+  border-radius:14px;
+  background:#7c2cff;
+  color:white;
+  font-size:17px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:disabled{
+  opacity:.6;
+}
+
+.status{
+  text-align:center;
+  color:#bbb;
+  margin-top:18px;
+}
+
+.result{
+  display:none;
+}
+
+audio{
+  width:100%;
+  margin-top:12px;
+}
+
+.download{
+  display:block;
+  text-align:center;
+  margin-top:14px;
+  padding:13px;
+  border-radius:12px;
+  background:#222;
+  color:white;
+  text-decoration:none;
+}
+
+.error{
+  color:#ff7777;
+}
+
+@media(max-width:500px){
+  .row{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="logo">🎵 Raffick Music AI V5</div>
+  <div class="subtitle">
+    Create your own AI music
+  </div>
+
+  <div class="card">
+
+    <label for="prompt">Describe your song</label>
+
+    <textarea
+      id="prompt"
+      placeholder="Example: A powerful Malawian Afrobeat song with energetic drums, catchy melody and a happy vibe..."
+    ></textarea>
+
+    <div class="row">
+
+      <div>
+        <label for="genre">Genre</label>
+        <select id="genre">
+          <option>Afrobeat</option>
+          <option>Amapiano</option>
+          <option>Hip Hop</option>
+          <option>R&B</option>
+          <option>Pop</option>
+          <option>Gospel</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="duration">Duration</label>
+        <select id="duration">
+          <option value="Short">Short</option>
+          <option value="Medium">Medium</option>
+          <option value="Long">Long</option>
+        </select>
+      </div>
+
+    </div>
+
+    <button id="createBtn" onclick="createMusic()">
+      🎶 Create Music
+    </button>
+
+    <div id="status" class="status"></div>
+
+  </div>
+
+  <div id="result" class="card result">
+    <h2>🎵 Your Music</h2>
+
+    <div id="songTitle"></div>
+
+    <audio id="audioPlayer" controls></audio>
+
+    <a id="downloadBtn" class="download" target="_blank">
+      ⬇️ Open / Download Music
+    </a>
+  </div>
+
+</div>
+
+<script>
+
+const BACKEND =
+  "https://raffick-music-ai.onrender.com";
+
+async function createMusic(){
+
+  const prompt =
+    document.getElementById("prompt").value.trim();
+
+  const genre =
+    document.getElementById("genre").value;
+
+  const duration =
+    document.getElementById("duration").value;
+
+  const button =
+    document.getElementById("createBtn");
+
+  const status =
+    document.getElementById("status");
+
+  const result =
+    document.getElementById("result");
+
+  if(!prompt){
+
+    status.innerHTML =
+      "⚠️ Please describe your song first.";
+
+    return;
+  }
+
+  button.disabled = true;
+
+  result.style.display = "none";
+
+  status.innerHTML =
+    "⏳ Sending your song request...";
+
+  try{
+
+    const response = await fetch(
+      BACKEND + "/api/create",
+      {
+        method:"POST",
+
+        headers:{
+          "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+          prompt:
+            prompt +
+            " Duration: " +
+            duration,
+
+          genre:genre
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error || "Music generation failed"
+      );
+    }
+
+    if(!data.task_id){
+
+      throw new Error(
+        "No task ID was returned."
+      );
+    }
+
+    status.innerHTML =
+      "🎵 Music is being generated... please wait.";
+
+    await checkTask(data.task_id);
+
+  }catch(error){
+
+    console.error(error);
+
+    status.innerHTML =
+      '<span class="error">❌ ' +
+      error.message +
+      "</span>";
+
+    button.disabled = false;
+  }
+}
+
+
+async function checkTask(taskId){
+
+  const status =
+    document.getElementById("status");
+
+  const button =
+    document.getElementById("createBtn");
+
+  const maxAttempts = 60;
+
+  let attempts = 0;
+
+  const timer = setInterval(async()=>{
+
+    attempts++;
+
+    try{
+
+      const response = await fetch(
+        BACKEND +
+        "/api/task/" +
+        taskId
+      );
+
+      const data = await response.json();
+
+      if(!response.ok){
+
+        throw new Error(
+          "Could not check music task."
+        );
+      }
+
+      const songs =
+        Array.isArray(data.data)
+        ? data.data
+        : [];
+
+      const song =
+        songs.find(
+          s => s.state === "succeeded"
+        ) || songs[0];
+
+      if(song && song.audio_url){
+
+        clearInterval(timer);
+
+        showMusic(song);
+
+        status.innerHTML =
+          "✅ Music created successfully!";
+
+        button.disabled = false;
+
+        return;
+      }
+
+      if(song && song.state === "failed"){
+
+        clearInterval(timer);
+
+        status.innerHTML =
+          '<span class="error">❌ Music generation failed.</span>';
+
+        button.disabled = false;
+
+        return;
+      }
+
+      status.innerHTML =
+        "🎶 Creating your music... " +
+        attempts +
+        "/60";
+
+      if(attempts >= maxAttempts){
+
+        clearInterval(timer);
+
+        status.innerHTML =
+          "⏱️ Generation is taking longer than expected. Try again later.";
+
+        button.disabled = false;
+      }
+
+    }catch(error){
+
+      clearInterval(timer);
+
+      console.error(error);
+
+      status.innerHTML =
+        '<span class="error">❌ ' +
+        error.message +
+        "</span>";
+
+      button.disabled = false;
+    }
+
+  },15000);
+}
+
+
+function showMusic(song){
+
+  const result =
+    document.getElementById("result");
+
+  const audio =
+    document.getElementById("audioPlayer");
+
+  const title =
+    document.getElementById("songTitle");
+
+  const download =
+    document.getElementById("downloadBtn");
+
+  title.innerHTML =
+    "<strong>" +
+    (song.title || "Raffick Music") +
+    "</strong>";
+
+  audio.src = song.audio_url;
+
+  download.href =
+    song.audio_url;
+
+  result.style.display =
+    "block";
+}
+
+</script>
+
+</body>
+  </html>
