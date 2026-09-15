@@ -421,7 +421,77 @@ function showMusic(song){
   result.style.display =
     "block";
 }
+const CREDIT_LIMIT = 5;
 
+function getCredits(){
+  const today = new Date().toDateString();
+  const saved = JSON.parse(localStorage.getItem("raffickCredits") || "{}");
+
+  if(saved.date !== today){
+    const fresh = {date: today, credits: CREDIT_LIMIT};
+    localStorage.setItem("raffickCredits", JSON.stringify(fresh));
+    return CREDIT_LIMIT;
+  }
+
+  return saved.credits;
+}
+
+function useCredit(){
+  const today = new Date().toDateString();
+  const credits = getCredits();
+
+  if(credits <= 0) return false;
+
+  localStorage.setItem(
+    "raffickCredits",
+    JSON.stringify({
+      date: today,
+      credits: credits - 1
+    })
+  );
+
+  updateCredits();
+  return true;
+}
+
+function updateCredits(){
+  let box = document.getElementById("creditsBox");
+
+  if(!box){
+    box = document.createElement("div");
+    box.id = "creditsBox";
+    box.style.textAlign = "center";
+    box.style.margin = "15px 0";
+    box.style.fontSize = "18px";
+    box.style.fontWeight = "bold";
+
+    const container = document.querySelector(".container");
+    container.insertBefore(box, container.children[2]);
+  }
+
+  box.innerHTML = "💎 Daily Credits: " + getCredits() + "/5";
+}
+
+const oldCreateMusic = createMusic;
+
+createMusic = async function(){
+
+  if(getCredits() <= 0){
+    document.getElementById("status").innerHTML =
+      "❌ Daily credits finished. Come back tomorrow.";
+    return;
+  }
+
+  if(!document.getElementById("prompt").value.trim()){
+    return oldCreateMusic();
+  }
+
+  useCredit();
+
+  await oldCreateMusic();
+};
+
+updateCredits();
 </script>
 
 </body>
