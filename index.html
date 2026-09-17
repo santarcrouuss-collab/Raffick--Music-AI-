@@ -254,14 +254,15 @@ if(!prompt && !lyrics){
           "Content-Type":"application/json"
         },
 
-        body:JSON.stringify({
-          prompt:
-            prompt +
-            " Duration: " +
-            duration,
+      body: JSON.stringify({
+  prompt:
+    prompt +
+    " Duration: " +
+    duration,
 
-          genre:genre
-        })
+  genre: genre,
+  lyrics: lyrics
+})
       }
     );
 
