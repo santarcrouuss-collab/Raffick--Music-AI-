@@ -26,14 +26,25 @@ app.post("/api/create", async (req, res) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${process.env.MUSICAPI_KEY}`
         },
-        body: JSON.stringify({
-          task_type: "create_music",
-          custom_mode: false,
-          mv: "sonic-v4-5",
-          gpt_description_prompt: prompt,
-          title: "Raffick Music AI",
-          tags: genre || "Afrobeat"
-        })
+      body: JSON.stringify(
+  lyrics && lyrics.trim()
+    ? {
+        task_type: "create_music",
+        custom_mode: true,
+        mv: "sonic-v4-5",
+        prompt: lyrics.trim(),
+        title: "Raffick Music AI",
+        tags: genre || "Afrobeat"
+      }
+    : {
+        task_type: "create_music",
+        custom_mode: false,
+        mv: "sonic-v4-5",
+        gpt_description_prompt: prompt,
+        title: "Raffick Music AI",
+        tags: genre || "Afrobeat"
+      }
+)})
       }
     );
 
