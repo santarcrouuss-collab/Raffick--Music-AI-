@@ -12,7 +12,7 @@ app.get("/", (req, res) => {
 
 app.post("/api/create", async (req, res) => {
   try {
-    const { prompt, genre } = req.body;
+    const { prompt, genre, lyrics } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required" });
