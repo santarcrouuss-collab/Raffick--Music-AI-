@@ -44,7 +44,7 @@ app.post("/api/create", async (req, res) => {
         title: "Raffick Music AI",
         tags: genre || "Afrobeat"
       }
-)})
+)
       }
     );
 
