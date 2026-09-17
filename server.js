@@ -14,7 +14,7 @@ app.post("/api/create", async (req, res) => {
   try {
     const { prompt, genre, lyrics } = req.body;
 
-    if (!prompt) {
+   if (!prompt && !lyrics) {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
